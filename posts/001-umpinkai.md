@@ -17,7 +17,7 @@ Finally, she started bringing three.
 
 Here are my creations of that recipe.
 
-## Tanne Nimbu Umpinkai
+## Tannegaye Nimbu Umpinkai
 
 Wash lemons, leave out (not in fridge) to dry for at least 24 hours  
 Chop lemons into small pieces  
