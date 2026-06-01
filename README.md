@@ -24,6 +24,16 @@ Your content here, in **Markdown**.
 Posts are listed on the home page newest-first. Supported Markdown: fenced code
 blocks, tables, footnotes, and smart quotes.
 
+## RSS feed
+
+The build writes an RSS 2.0 feed to `_site/feed.xml`, listing every published
+post newest-first with its full rendered content. Every page links to it (in the
+`<head>` for reader autodiscovery and in the footer), so feed readers find it
+automatically. Only published posts appear — drafts are excluded.
+
+The feed needs absolute URLs, so set `SITE_URL` in `build.py` to the site's
+base URL (no trailing slash); it defaults to `https://ptnobel.github.io/blog`.
+
 ## Drafts / unlisted posts
 
 Add `published: false` to a post's frontmatter to keep it off the home page:
@@ -68,5 +78,6 @@ GitHub Actions**.
 ## Customizing
 
 - Site title and subtitle: `SITE_TITLE` / `SITE_DESCRIPTION` in `build.py`
+- Site base URL (for the RSS feed): `SITE_URL` in `build.py`
 - Styling: `static/style.css`
 - Page layout: the `page()` function in `build.py`
