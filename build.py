@@ -110,7 +110,7 @@ def page(title: str, body: str, *, rel: str = "./", is_home: bool = False, noind
 {body}
   </main>
   <footer>
-    <p>Built with a tiny Python script.</p>
+    <p><a href="{rel}feed.xml">RSS</a></p>
   </footer>
 </body>
 </html>
