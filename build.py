@@ -15,6 +15,7 @@ from __future__ import annotations
 import datetime as dt
 import html
 import shutil
+from email.utils import format_datetime
 from pathlib import Path
 
 import frontmatter
@@ -24,6 +25,9 @@ import markdown
 
 SITE_TITLE = "Meditations by Parth"
 SITE_DESCRIPTION = "a blog on cooking, mathematics, and whatever passes my fancy"
+# Absolute base URL where the site is published (no trailing slash). Used to
+# build the absolute links the RSS feed requires.
+SITE_URL = "https://ptnobel.github.io/blog"
 
 ROOT = Path(__file__).parent
 POSTS_DIR = ROOT / "posts"
@@ -100,6 +104,7 @@ def page(title: str, body: str, *, rel: str = "./", is_home: bool = False, noind
   <meta name="viewport" content="width=device-width, initial-scale=1">{robots}
   <title>{html.escape(title)}</title>
   <link rel="stylesheet" href="{rel}style.css">
+  <link rel="alternate" type="application/rss+xml" title="{html.escape(SITE_TITLE)}" href="{rel}feed.xml">
 </head>
 <body>
   <header>
@@ -110,7 +115,7 @@ def page(title: str, body: str, *, rel: str = "./", is_home: bool = False, noind
 {body}
   </main>
   <footer>
-    <p>Built with a tiny Python script.</p>
+    <p>Built with a tiny Python script. &middot; <a href="{rel}feed.xml">RSS</a></p>
   </footer>
 </body>
 </html>
@@ -150,6 +155,48 @@ def render_index(posts: list[Post]) -> str:
     return page(SITE_TITLE, body, is_home=True)
 
 
+def render_feed(posts: list[Post]) -> str:
+    """Render an RSS 2.0 feed of the published posts."""
+    now = format_datetime(dt.datetime.now(dt.timezone.utc))
+
+    items = []
+    for post in posts:
+        if not post.published:
+            continue
+        link = f"{SITE_URL}/{post.url}"
+        # RSS wants an RFC 822 date; posts only carry a date, so anchor at
+        # midnight UTC.
+        pub = format_datetime(
+            dt.datetime.combine(post.date, dt.time(), tzinfo=dt.timezone.utc)
+        )
+        # Wrap the rendered HTML in CDATA; guard against an accidental "]]>".
+        content = post.body_html.replace("]]>", "]]&gt;")
+        items.append(
+            f"""    <item>
+      <title>{html.escape(post.title)}</title>
+      <link>{html.escape(link)}</link>
+      <guid isPermaLink="true">{html.escape(link)}</guid>
+      <pubDate>{pub}</pubDate>
+      <description><![CDATA[{content}]]></description>
+    </item>"""
+        )
+
+    items_xml = "\n".join(items)
+    return f"""<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>{html.escape(SITE_TITLE)}</title>
+    <link>{html.escape(SITE_URL)}/</link>
+    <atom:link href="{html.escape(SITE_URL)}/feed.xml" rel="self" type="application/rss+xml"/>
+    <description>{html.escape(SITE_DESCRIPTION)}</description>
+    <language>en</language>
+    <lastBuildDate>{now}</lastBuildDate>
+{items_xml}
+  </channel>
+</rss>
+"""
+
+
 def main() -> None:
     if OUTPUT_DIR.exists():
         shutil.rmtree(OUTPUT_DIR)
@@ -162,6 +209,7 @@ def main() -> None:
         out_path.write_text(render_post(post), encoding="utf-8")
 
     (OUTPUT_DIR / "index.html").write_text(render_index(posts), encoding="utf-8")
+    (OUTPUT_DIR / "feed.xml").write_text(render_feed(posts), encoding="utf-8")
 
     if STATIC_DIR.exists():
         for item in STATIC_DIR.iterdir():
