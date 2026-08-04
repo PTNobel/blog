@@ -37,7 +37,7 @@ Put in fridge on third day
 
 *Note: Ajji says you can do this with pineapple, mango, etc.*
 
-Make sasve and menthya pudi from tanne nimbu umpinkai  
+Make sasve and menthya pudi from tannegaye nimbu umpinkai  
 Roast sasve in yenai (oil); don’t pop  
 Add arshna and ingu and stir a little  
 Add lemon and stir  
