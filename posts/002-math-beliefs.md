@@ -1,6 +1,5 @@
 ---
 title: Miscellaneous Things I Believe
-date: 2026-08-20
 published: false
 ---
 
@@ -36,5 +35,4 @@ I think the polynomial hierarchy collapses at level 17.
 I think if the hierarchy collapses, it does so at a prime number, because primes are cool.
 Since Knuth thinks that it does collapses (albeit much earlier than me), I will conjecture it does as well.
 I think 17 would be a fun prime for the collapse to occur.
-
 

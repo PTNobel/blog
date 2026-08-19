@@ -16,9 +16,12 @@ from __future__ import annotations
 
 import datetime as dt
 import html
+import re
 import shutil
+import subprocess
 from email.utils import format_datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import frontmatter
 from latex2mathml.converter import convert
@@ -33,6 +36,8 @@ SITE_DESCRIPTION = "a blog on cooking, mathematics, and whatever passes my fancy
 # Absolute base URL where the site is published (no trailing slash). Used to
 # build the absolute links the RSS feed requires.
 SITE_URL = "https://ptnobel.github.io/blog"
+# Publication dates use the civil time of uninhabited Baker Island (UTC-12).
+PUBLICATION_TIMEZONE = ZoneInfo("Etc/GMT+12")
 
 ROOT = Path(__file__).parent
 POSTS_DIR = ROOT / "posts"
@@ -62,15 +67,52 @@ MD = (
 # --- Helpers -----------------------------------------------------------------
 
 
-def parse_date(value: object) -> dt.date:
-    """Coerce a frontmatter date (date, datetime, or ISO string) to a date."""
-    if isinstance(value, dt.datetime):
-        return value.date()
-    if isinstance(value, dt.date):
-        return value
-    if isinstance(value, str):
-        return dt.date.fromisoformat(value.strip())
-    raise ValueError(f"Unsupported date value: {value!r}")
+SOURCE_NAME = re.compile(r"^(?P<number>\d+)-(?P<slug>.+)$")
+PUBLISHED_ADDITION = re.compile(r"^\+\s*published:\s*true\s*$")
+COMMIT_MARKER = "__BLOG_COMMIT__\t"
+
+
+def publication_date(path: Path) -> dt.date:
+    """Return the Baker Island date when this post was first published."""
+    result = subprocess.run(
+        [
+            "git",
+            "log",
+            "--follow",
+            "--find-renames",
+            "--format=__BLOG_COMMIT__%x09%H%x09%cI",
+            "--unified=0",
+            "--no-ext-diff",
+            "-p",
+            "--",
+            str(path.relative_to(ROOT)),
+        ],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if result.returncode:
+        detail = result.stderr.strip() or "git log failed"
+        raise ValueError(f"{path.name}: could not inspect Git history: {detail}")
+
+    committed_at: str | None = None
+    publication_times: list[dt.datetime] = []
+    for line in result.stdout.splitlines():
+        if line.startswith(COMMIT_MARKER):
+            _, _commit, committed_at = line.split("\t", 2)
+        elif committed_at is not None and PUBLISHED_ADDITION.fullmatch(line):
+            publication_times.append(dt.datetime.fromisoformat(committed_at))
+
+    if publication_times:
+        first_publication = publication_times[-1]
+        return first_publication.astimezone(PUBLICATION_TIMEZONE).date()
+
+    raise ValueError(
+        f"{path.name}: published posts need a committed 'published: true' "
+        "transition in the full Git history"
+    )
 
 
 def parse_published(metadata: dict, path: Path) -> bool:
@@ -91,22 +133,40 @@ def parse_published(metadata: dict, path: Path) -> bool:
 class Post:
     def __init__(self, path: Path):
         doc = frontmatter.load(path)
-        self.title = doc.get("title") or path.stem
-        self.date = parse_date(doc.get("date", dt.date.today()))
+        match = SOURCE_NAME.fullmatch(path.stem)
+        if match is None:
+            raise ValueError(
+                f"{path.name}: post filenames must look like "
+                "'001-short-description.md'"
+            )
+
+        self.number_text = match.group("number")
+        self.number = int(self.number_text)
+        self.slug = match.group("slug")
+        self.title = doc.get("title") or self.slug.replace("-", " ").title()
         self.published = parse_published(doc.metadata, path)
-        self.slug = path.stem
+        self.date = publication_date(path) if self.published else None
         self.body_html = MD.render(doc.content)
 
     @property
+    def output_slug(self) -> str:
+        prefix = self.date_iso if self.published else self.number_text
+        return f"{prefix}-{self.slug}"
+
+    @property
     def url(self) -> str:
-        return f"{self.slug}/"
+        return f"{self.output_slug}/"
 
     @property
     def date_iso(self) -> str:
+        if self.date is None:
+            raise ValueError("draft posts do not have publication dates")
         return self.date.isoformat()
 
     @property
     def date_human(self) -> str:
+        if self.date is None:
+            raise ValueError("draft posts do not have publication dates")
         return self.date.strftime("%B %-d, %Y")
 
 
@@ -148,16 +208,24 @@ def page(title: str, body: str, *, rel: str = "./", is_home: bool = False, noind
 
 def load_posts() -> list[Post]:
     posts = [Post(p) for p in POSTS_DIR.glob("*.md")]
-    posts.sort(key=lambda p: p.date, reverse=True)
+    numbers = [post.number for post in posts]
+    if len(numbers) != len(set(numbers)):
+        raise ValueError("post filename counters must be unique")
+    posts.sort(key=lambda p: (p.date or dt.date.min, p.number), reverse=True)
     return posts
 
 
 def render_post(post: Post) -> str:
     draft = "" if post.published else '  <p class="draft-notice">Draft &mdash; unlisted</p>\n'
+    published_on = (
+        f'  <p class="meta"><time datetime="{post.date_iso}">'
+        f"{post.date_human}</time></p>\n"
+        if post.published
+        else ""
+    )
     body = f"""<article>
   <h1>{html.escape(post.title)}</h1>
-  <p class="meta"><time datetime="{post.date_iso}">{post.date_human}</time></p>
-{draft}{post.body_html}
+{published_on}{draft}{post.body_html}
 </article>"""
     return page(post.title, body, rel="../", noindex=not post.published)
 
@@ -184,6 +252,7 @@ def render_feed(posts: list[Post]) -> str:
     for post in posts:
         if not post.published:
             continue
+        assert post.date is not None
         link = f"{SITE_URL}/{post.url}"
         # RSS wants an RFC 822 date; posts only carry a date, so anchor at
         # midnight UTC.
@@ -225,7 +294,7 @@ def main() -> None:
 
     posts = load_posts()
     for post in posts:
-        out_path = OUTPUT_DIR / post.slug / "index.html"
+        out_path = OUTPUT_DIR / post.output_slug / "index.html"
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(render_post(post), encoding="utf-8")
 

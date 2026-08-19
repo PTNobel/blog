@@ -7,23 +7,28 @@ built by a single Python script and deployed to GitHub Pages via GitHub Actions.
 
 ## Writing a post
 
-Add a Markdown file to `posts/`, named `YYYY-MM-DD-slug.md`, with frontmatter.
-The `published` flag is required — the build errors if it's missing, so you never
-accidentally publish (or hide) a post by forgetting it.
+Add a Markdown file to `posts/` with a unique counter and a short description,
+such as `003-my-great-post.md`. The `published` flag is required — the build
+errors if it's missing, so you never accidentally publish (or hide) a post by
+forgetting it.
 
 ```markdown
 ---
 title: My Great Post
-date: 2026-06-01
 published: true
 ---
 
 Your content here, in **Markdown**.
 ```
 
-Posts are listed on the home page newest-first. Supported Markdown: fenced code
-blocks, tables, footnotes, smart quotes, and TeX math. Use `$...$` for inline
-math and `$$...$$` on its own line for display math:
+The counter is replaced in the rendered URL by the date of the first Git commit
+that sets `published: true`. Dates use Baker Island time (`Etc/GMT+12`), and
+published posts are listed newest-first. Because dates come from Git history,
+the post must be committed before a published build can succeed.
+
+Supported Markdown: fenced code blocks, tables, footnotes, smart quotes, and
+TeX math. Use `$...$` for inline math and `$$...$$` on its own line for display
+math:
 
 ```markdown
 Euler's identity is $e^{i\pi} + 1 = 0$.
@@ -53,15 +58,15 @@ Add `published: false` to a post's frontmatter to keep it off the home page:
 ```markdown
 ---
 title: Work in Progress
-date: 2026-06-01
 published: false
 ---
 ```
 
-The post is still built and deployed at its own URL (e.g.
-`https://you.github.io/repo/work-in-progress/`), so you can share that link
-for feedback — it just isn't linked from the home page, and it's tagged
-`noindex` so search engines skip it. Set it to `true` to publish.
+The post is still built and deployed at its numbered URL (for example,
+`003-work-in-progress/`), so you can share that link for feedback. It isn't
+linked from the home page and is tagged `noindex` so search engines skip it.
+When a commit changes the flag to `true`, the numbered prefix is replaced by
+that commit's Baker Island date.
 
 ## Build locally
 

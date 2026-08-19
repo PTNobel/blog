@@ -1,6 +1,5 @@
 ---
 title: Nimbu Umpinkai
-date: 2026-02-01
 published: true
 ---
 
@@ -48,7 +47,6 @@ Add bela (jaggery) or brown sucre (sugar)
 Stir  
 Let cook  
 Turn off heat, let sit uncovered till it completely cools. Can transfer to jars while cooling, but cannot cover jars.
-
 
 
 
