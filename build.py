@@ -1,7 +1,9 @@
 # /// script
 # requires-python = ">=3.11"
 # dependencies = [
-#     "markdown>=3.6",
+#     "latex2mathml>=3.81",
+#     "markdown-it-py>=4.2",
+#     "mdit-py-plugins>=0.6.1",
 #     "python-frontmatter>=1.1",
 # ]
 # ///
@@ -19,7 +21,10 @@ from email.utils import format_datetime
 from pathlib import Path
 
 import frontmatter
-import markdown
+from latex2mathml.converter import convert
+from markdown_it import MarkdownIt
+from mdit_py_plugins.dollarmath import dollarmath_plugin
+from mdit_py_plugins.footnote import footnote_plugin
 
 # --- Site configuration ------------------------------------------------------
 
@@ -34,7 +39,24 @@ POSTS_DIR = ROOT / "posts"
 STATIC_DIR = ROOT / "static"
 OUTPUT_DIR = ROOT / "_site"
 
-MD = markdown.Markdown(extensions=["fenced_code", "tables", "footnotes", "smarty"])
+
+def render_math(tex: str, options: dict[str, object]) -> str:
+    """Render a parsed TeX expression as native MathML."""
+    display = "block" if options["display_mode"] else "inline"
+    return convert(tex, display=display)
+
+
+MD = (
+    MarkdownIt("commonmark", {"typographer": True})
+    .enable(["table", "replacements", "smartquotes"])
+    .use(footnote_plugin)
+    .use(
+        dollarmath_plugin,
+        renderer=render_math,
+        allow_space=False,
+        allow_digits=True,
+    )
+)
 
 
 # --- Helpers -----------------------------------------------------------------
@@ -73,8 +95,7 @@ class Post:
         self.date = parse_date(doc.get("date", dt.date.today()))
         self.published = parse_published(doc.metadata, path)
         self.slug = path.stem
-        MD.reset()
-        self.body_html = MD.convert(doc.content)
+        self.body_html = MD.render(doc.content)
 
     @property
     def url(self) -> str:

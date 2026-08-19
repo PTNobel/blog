@@ -22,7 +22,19 @@ Your content here, in **Markdown**.
 ```
 
 Posts are listed on the home page newest-first. Supported Markdown: fenced code
-blocks, tables, footnotes, and smart quotes.
+blocks, tables, footnotes, smart quotes, and TeX math. Use `$...$` for inline
+math and `$$...$$` on its own line for display math:
+
+```markdown
+Euler's identity is $e^{i\pi} + 1 = 0$.
+
+$$
+\sum_{k=1}^n k = \frac{n(n+1)}{2}
+$$
+```
+
+TeX is converted to native MathML when the site is built, so rendering does not
+require JavaScript.
 
 ## RSS feed
 
@@ -64,8 +76,7 @@ uv run python -m http.server -d _site 8000   # then open http://localhost:8000
 ```
 
 `build.py` uses [uv](https://docs.astral.sh/uv/)'s inline script dependencies, so
-there's nothing to install first — `uv run` fetches `markdown` and
-`python-frontmatter` automatically.
+there's nothing to install first — `uv run` fetches everything automatically.
 
 ## Deploying
 

@@ -97,3 +97,10 @@ blockquote {
 table { border-collapse: collapse; width: 100%; }
 th, td { border: 1px solid var(--border); padding: 0.4rem 0.6rem; text-align: left; }
 img { max-width: 100%; }
+
+math[display="block"] {
+  display: block;
+  margin: 1.25rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
