@@ -21,7 +21,7 @@ PRNGs work so empirically well in RNLA, that I can't imagine there's some true s
 
 I I believe simplex is inherently superpolynomial in the worst-case.
 
-I believe that there is a method to solve LPs whose arithmetic complexity is polynomial, regardless of the magnitude of the coefficients.
+I believe that there is a method to solve LPs whose arithmetic complexity is a polynomial that is independent of the magnitude of the coefficients.
 
 
 ## Beliefs I haven't heard before
